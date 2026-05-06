@@ -223,7 +223,7 @@
         const intel = document.getElementById('intel-content');
         if(cardName === "제비") intel.innerHTML = `[제비 정보] 상대 배팅: <b style="color:var(--accent-yellow)">${nextAiBet}년</b>`;
         else if(cardName === "사슴") {
-            intel.innerHTML = `[사슴 정보] 상대 초기 패 중복: <b>${aiInitialHadDuplicate ? '있음' : '없음'}</b>`;
+            intel.innerHTML = `[사슴 정보] 상대 초기 패 중복: <b>${aiInitialHadDuplicate ? '있었음' : '없음'}</b>`;
         } else intel.innerText = "특수 효과 없음";
         updateUI();
     }
@@ -233,26 +233,29 @@
         if(pBet > pHP) return alert("수명을 초과했습니다.");
         if(isNaN(pBet) || pBet < 0) return alert("올바른 값을 입력하세요.");
 
-        let pCard = pHand[selectedIdx];
-        let aCard = aHand[nextAiCardIdx];
-
         if (pBet === 0) {
             alert("합의 하에 수명을 걸지 않고 무승부로 라운드를 넘깁니다. 포기할 카드 하나를 선택해 주세요.");
+            
             const block = document.createElement('div');
             block.className = 'battle-block';
             block.innerHTML = `<div style="font-weight:bold; color:var(--accent-yellow)">[라운드 ${round} 합의 무승부] 수명 소모 없이 카드를 버립니다.</div>`;
             document.getElementById('log').insertBefore(block, document.getElementById('log').firstChild);
-            
-            pUsed.push(pCard);
-            aUsed.push(aCard);
-            pHand.splice(selectedIdx, 1);
-            aHand.splice(nextAiCardIdx, 1);
 
-            isLocked = false; selectedIdx = null;
+            pUsed.push(pHand[selectedIdx]);
+            aUsed.push(aHand[nextAiCardIdx]);
+            pHand[selectedIdx] = null;
+            aHand[nextAiCardIdx] = null;
+
+            isLocked = false;
+            selectedIdx = null;
+            
             finishRound();
             return;
         }
 
+        let pCard = pHand[selectedIdx];
+        let aCard = aHand[nextAiCardIdx];
+        
         let pBonus = 0, aBonus = 0;
         if(CARDS[pCard].vs === aCard) { pBonus = 3; aBonus = -1; }
         else if(CARDS[aCard].vs === pCard) { aBonus = 3; pBonus = -1; }
@@ -281,18 +284,13 @@
 
         document.getElementById('log').insertBefore(block, document.getElementById('log').firstChild);
 
-        // 나비 효과 처리 로직
-        let pRecoverCard = (pCard === "나비" && pUsed.length > 0) ? pUsed[pUsed.length - 1] : null;
-        let aRecoverCard = (aCard === "나비" && aUsed.length > 0) ? aUsed[aUsed.length - 1] : null;
+        if(pCard === "나비" && pUsed.length > 0) pHand.push(pUsed[pUsed.length-1]);
+        if(aCard === "나비" && aUsed.length > 0) aHand.push(aUsed[aUsed.length-1]);
 
         pUsed.push(pCard); aUsed.push(aCard);
-        pHand.splice(selectedIdx, 1);
-        aHand.splice(nextAiCardIdx, 1);
-
-        if(pRecoverCard) pHand.push(pRecoverCard);
-        if(aRecoverCard) aHand.push(aRecoverCard);
-
+        pHand[selectedIdx] = null; aHand[nextAiCardIdx] = null;
         isLocked = false; selectedIdx = null; 
+        
         finishRound();
     }
 
