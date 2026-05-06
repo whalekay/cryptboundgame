@@ -68,8 +68,8 @@
     <div id="step1" class="section active">
         <div class="box">
             <h1>대수대명의 밤: 수명결</h1>
-            <p>1d20 주사위를 굴려 당신의 명(命)을 확인하십시오.</p>
-            <button class="btn" onclick="rollLife()">주사위 굴리기</button>
+            <p>5~20 사이의 수명으로 당신의 명(命)을 결정하십시오.</p>
+            <button class="btn" onclick="rollLife()">수명 결정</button>
             <div class="credit-text">
                 해당 페이지는 청서(@LineYear35105)님의 CoC 7th 팬메이드 시나리오 Cryptbound 속에 등장하는 게임, '수명결'에 대한 플레이어들의 이해를 돕기 위해 제작되었습니다.<br><br>
                 모든 아이디어의 저작권은 청서님에게 있으며, 코드는 Ai의 도움을 받았습니다.<br>
@@ -94,7 +94,7 @@
         <div class="lock-notice" id="lock-msg">🔒 카드가 선택되었습니다. 이제 베팅하십시오.</div>
         
         <div id="action-area" style="margin-top: 20px; display: none;">
-            베팅 수명: <input type="number" id="bet-in" value="10" min="0" style="padding: 10px; width: 75px; background: #000; color: #fff; border: 1px solid #444; border-radius: 5px; font-size: 1rem;">
+            베팅 수명: <input type="number" id="bet-in" value="1" min="0" style="padding: 10px; width: 75px; background: #000; color: #fff; border: 1px solid #444; border-radius: 5px; font-size: 1rem;">
             <button class="btn" onclick="doBattle()">결투 선언</button>
         </div>
 
@@ -128,8 +128,9 @@
     let aiInitialHadDuplicate = false; 
 
     function rollLife() {
-        pHP = Math.floor(Math.random() * 20) + 1;
-        aHP = Math.floor(Math.random() * 20) + 1;
+        // 5~20 사이의 수명 결정 (16가지 경우: 5,6...20)
+        pHP = Math.floor(Math.random() * 16) + 5;
+        aHP = Math.floor(Math.random() * 16) + 5;
         const box = document.querySelector('#step1 .box');
         box.innerHTML = `<h1>수명 결정 완료</h1>
             <p>당신의 수명은 <b style="color:var(--accent-green)">${pHP}년</b>입니다.</p>
@@ -170,8 +171,8 @@
         let valid = aHand.map((c, i) => c !== null ? i : null).filter(i => i !== null);
         if (valid.length === 0) return;
         valid.sort((a, b) => CARDS[aHand[b]].score - CARDS[aHand[a]].score);
-        nextAiBet = Math.floor(CARDS[aHand[valid[0]]].score * 2 + Math.random() * 10);
         nextAiCardIdx = valid[0];
+        nextAiBet = Math.floor(CARDS[aHand[nextAiCardIdx]].score * 1.5 + Math.random() * 5);
         if(nextAiBet > aHP) nextAiBet = aHP;
         if(nextAiBet < 1) nextAiBet = 1;
     }
@@ -227,7 +228,6 @@
         let pCard = pHand[selectedIdx];
         let aCard = aHand[nextAiCardIdx];
 
-        // 권능 무효화 여부 확인 (멧돼지)
         let pEffectEnabled = (aCard !== "멧돼지");
         let aEffectEnabled = (pCard !== "멧돼지");
 
@@ -250,7 +250,6 @@
             block.innerHTML = `<div style="font-weight:bold; color:var(--accent-yellow)">[라운드 ${round} 결투] 나: ${pCard}(${pTotal}) vs AI: ${aCard}(${aTotal})</div>
             <div class="log-calc">나 - 카드 점수: ${CARDS[pCard].score} / 베팅: ${pBet} / 상성 보너스: ${pBonus}\nAI - 카드 점수: ${CARDS[aCard].score} / 베팅: ${nextAiBet} / 상성 보너스: ${aBonus}</div>`;
 
-            // 멧돼지 권능 로그
             if (!pEffectEnabled) block.innerHTML += `<div class="ability-log">멧돼지의 권능으로 상대의 ${pCard} 능력이 무효가 되었습니다.</div>`;
             if (!aEffectEnabled) block.innerHTML += `<div class="ability-log">멧돼지의 권능으로 상대의 ${aCard} 능력이 무효가 되었습니다.</div>`;
 
@@ -268,7 +267,6 @@
             } else block.innerHTML += `<div>▶ 무승부! 변화 없음.</div>`;
         }
 
-        // 나비 효과 처리 (카드 제거 전 복구 대상 저장)
         let pRecoverCard = (pCard === "나비" && pEffectEnabled && pUsed.length > 0) ? pUsed[pUsed.length - 1] : null;
         let aRecoverCard = (aCard === "나비" && aEffectEnabled && aUsed.length > 0) ? aUsed[aUsed.length - 1] : null;
 
