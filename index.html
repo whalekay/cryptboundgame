@@ -23,7 +23,6 @@
         .btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,255,136,0.3); }
         .btn:disabled { background: #444; color: #888; cursor: not-allowed; }
         
-        /* 저작권 문구 스타일 */
         .credit-text {
             margin-top: 35px;
             font-size: 0.8rem;
@@ -103,7 +102,7 @@
         <div class="lock-notice" id="lock-msg">🔒 카드가 선택되었습니다. 이제 베팅하십시오.</div>
         
         <div id="action-area" style="margin-top: 20px; display: none;">
-            베팅 수명: <input type="number" id="bet-in" value="10" min="1" style="padding: 10px; width: 75px; background: #000; color: #fff; border: 1px solid #444; border-radius: 5px; font-size: 1rem;">
+            베팅 수명: <input type="number" id="bet-in" value="10" min="0" style="padding: 10px; width: 75px; background: #000; color: #fff; border: 1px solid #444; border-radius: 5px; font-size: 1rem;">
             <button class="btn" onclick="doBattle()">결투 선언</button>
         </div>
 
@@ -144,7 +143,7 @@
             <p>상대의 수명은 ${aHP}년입니다.</p>
             <button class="btn" onclick="startGM()">카드를 받는다</button>
             <div class="credit-text">
-                해당 게임은 청서(@LineYear35105)님의 CoC 7th 팬메이드 시나리오 Cryptbound 속에 등장하는 게임, '수명결'에 대한 플레이어들의 이해를 돕기 위해 제작되었습니다.<br><br>
+                해당 페이지는 청서(@LineYear35105)님의 CoC 7th 팬메이드 시나리오 Cryptbound 속에 등장하는 게임, '수명결'에 대한 플레이어들의 이해를 돕기 위해 제작되었습니다.<br><br>
                 모든 아이디어의 저작권은 청서님에게 있으며, 코드는 Ai의 도움을 받았습니다.<br>
                 문제가 생길 시 즉시 삭제됩니다.
             </div>`;
@@ -229,7 +228,28 @@
     function doBattle() {
         let pBet = parseInt(document.getElementById('bet-in').value);
         if(pBet > pHP) return alert("수명을 초과했습니다.");
-        if(isNaN(pBet) || pBet < 1) return alert("올바른 값을 입력하세요.");
+        if(isNaN(pBet) || pBet < 0) return alert("올바른 값을 입력하세요.");
+
+        // 수명 0 베팅 시 특수 처리
+        if (pBet === 0) {
+            alert("합의 하에 수명을 걸지 않고 무승부로 라운드를 넘깁니다. 포기할 카드 하나를 선택해 주세요.");
+            
+            const block = document.createElement('div');
+            block.className = 'battle-block';
+            block.innerHTML = `<div style="font-weight:bold; color:var(--accent-yellow)">[라운드 ${round} 합의 무승부] 수명 소모 없이 카드를 버립니다.</div>`;
+            document.getElementById('log').insertBefore(block, document.getElementById('log').firstChild);
+
+            pUsed.push(pHand[selectedIdx]);
+            aUsed.push(aHand[nextAiCardIdx]);
+            pHand[selectedIdx] = null;
+            aHand[nextAiCardIdx] = null;
+
+            isLocked = false;
+            selectedIdx = null;
+            
+            finishRound();
+            return;
+        }
 
         let pCard = pHand[selectedIdx];
         let aCard = aHand[nextAiCardIdx];
@@ -267,11 +287,18 @@
 
         pUsed.push(pCard); aUsed.push(aCard);
         pHand[selectedIdx] = null; aHand[nextAiCardIdx] = null;
-        isLocked = false; selectedIdx = null; updateUI();
+        isLocked = false; selectedIdx = null; 
+        
+        finishRound();
+    }
 
-        if(pHP <= 0 || aHP <= 0) endGame(pHP <= 0 ? '수명 고갈 사망' : '승리 (AI 처단)');
-        else {
-            isWaitingAgreement = true; updateUI();
+    function finishRound() {
+        updateUI();
+        if(pHP <= 0 || aHP <= 0) {
+            endGame(pHP <= 0 ? '수명 고갈 사망' : '승리 (AI 처단)');
+        } else {
+            isWaitingAgreement = true; 
+            updateUI();
             document.getElementById('action-area').style.display = 'none';
             if(round === 3) document.getElementById('choice-area').style.display = 'block';
             else document.getElementById('next-round-area').style.display = 'block';
