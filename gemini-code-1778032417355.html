@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>대수대명의 밤: 수명결</title>
+    <style>
+        :root {
+            --bg-color: #0a0a0c;
+            --card-bg: #16161d;
+            --accent-green: #00ff88;
+            --accent-yellow: #ffcc00;
+            --accent-red: #ff4444;
+            --text-color: #f0f0f0;
+            --border-color: #2e2e3a;
+        }
+
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: 'Pretendard', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; overflow-x: hidden; }
+        .section { display: none; text-align: center; width: 90%; max-width: 850px; }
+        .section.active { display: block; }
+        .box { background: var(--card-bg); padding: 40px; border-radius: 20px; border: 1px solid var(--border-color); box-shadow: 0 20px 50px rgba(0,0,0,0.8); }
+        h1 { color: var(--accent-green); margin-bottom: 25px; font-size: 2.2rem; }
+        .btn { background: var(--accent-green); color: #000; border: none; padding: 12px 30px; font-size: 1.1rem; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+        .btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,255,136,0.3); }
+        .btn:disabled { background: #444; color: #888; cursor: not-allowed; }
+        
+        .warning-text { color: var(--accent-red); font-size: 0.9rem; margin-bottom: 10px; font-weight: bold; }
+        .lock-notice { color: var(--accent-yellow); font-size: 1rem; margin-top: 10px; display: none; }
+
+        #guide-window {
+            position: fixed; top: 20px; right: 20px; width: 260px;
+            background: rgba(15, 15, 20, 0.95); border: 1px solid var(--border-color);
+            border-radius: 12px; padding: 15px; font-size: 0.85rem; text-align: left;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.5); z-index: 100; backdrop-filter: blur(10px);
+        }
+        .guide-title { color: var(--accent-green); font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; }
+        .intel-box { margin-top: 15px; padding: 10px; background: rgba(255, 204, 0, 0.1); border: 1px dashed var(--accent-yellow); border-radius: 5px; }
+
+        .status-bar { display: flex; justify-content: space-around; background: #121218; padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid var(--border-color); }
+        .card-container { display: flex; justify-content: center; gap: 12px; margin: 25px 0; min-height: 140px; flex-wrap: wrap; }
+        .card { width: 95px; height: 130px; background: #1f1f2a; border: 2px solid var(--border-color); border-radius: 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; }
+        .card.selected { border-color: var(--accent-green); background: #1a3a2e; transform: translateY(-10px); box-shadow: 0 5px 15px rgba(0,255,136,0.3); }
+        .card.locked { cursor: default; filter: brightness(0.5); }
+        .card.locked.selected { filter: brightness(1); border-color: #555; }
+        
+        .log-window { background: #050505; height: 300px; overflow-y: auto; border-radius: 10px; padding: 15px; text-align: left; border: 1px solid var(--border-color); font-size: 0.9rem; margin-top: 20px;}
+        .battle-block { border-left: 3px solid var(--border-color); padding-left: 15px; margin-bottom: 20px; border-bottom: 1px solid #111; padding-bottom: 10px; }
+        .log-calc { color: #888; font-size: 0.8rem; margin: 4px 0; white-space: pre-line; }
+        
+        .choice-area { display: none; margin-top: 20px; background: #1a1a24; padding: 20px; border-radius: 15px; border: 1px solid var(--accent-yellow); }
+    </style>
+</head>
+<body>
+
+    <div id="guide-window">
+        <div class="guide-title">📜 대수대명 도감</div>
+        <div><b>멧돼지(2)</b>: 상대 효과 무효화</div>
+        <div><b>두루미(8)</b>: 승리 2배 / 패배 절반</div>
+        <div><b>사슴(4)</b>: 상대 중복 패 간파</div>
+        <div><b>나비(10)</b>: 직전 카드 인벤토리 복구</div>
+        <div><b>제비(6)</b>: 상대 배팅 수명 확인</div>
+        <div class="intel-box">
+            <div style="color: var(--accent-yellow); font-weight: bold; margin-bottom: 5px;">🔍 획득 정보</div>
+            <div id="intel-content">카드를 선택하여 확정하십시오.</div>
+        </div>
+    </div>
+
+    <div id="step1" class="section active">
+        <div class="box">
+            <h1>대수대명의 밤: 수명결</h1>
+            <p>1d100 주사위를 굴려 당신의 명(命)을 확인하십시오.</p>
+            <button class="btn" onclick="rollLife()">주사위 굴리기</button>
+        </div>
+    </div>
+
+    <div id="step2" class="section">
+        <p style="font-size: 1.8rem; color: var(--accent-green); font-weight: bold;">"GM이 카드를 배부합니다..."</p>
+    </div>
+
+    <div id="step3" class="section">
+        <div class="status-bar">
+            <div>나의 수명: <b id="hp-p" style="color: var(--accent-green);">0</b></div>
+            <div>진행 라운드: <b id="round-n">1</b> / 3</div>
+            <div>상대 수명: <b id="hp-a" style="color: var(--accent-red);">0</b></div>
+        </div>
+        
+        <div class="warning-text" id="warn-msg">⚠️ 카드는 한 번 선택하면 변경할 수 없습니다!</div>
+        <div class="card-container" id="hand"></div>
+        <div class="lock-notice" id="lock-msg">🔒 카드가 선택되었습니다. 이제 베팅하십시오.</div>
+        
+        <div id="action-area" style="margin-top: 20px; display: none;">
+            베팅 수명: <input type="number" id="bet-in" value="10" min="1" style="padding: 10px; width: 75px; background: #000; color: #fff; border: 1px solid #444; border-radius: 5px; font-size: 1rem;">
+            <button class="btn" onclick="doBattle()">결투 선언</button>
+        </div>
+
+        <div id="choice-area" class="choice-area">
+            <p style="font-weight: bold; color: var(--accent-yellow); margin-top: 0;">3라운드가 종료되었습니다. 운명을 결정하십시오.</p>
+            <button class="btn" style="background: var(--accent-yellow); margin-bottom: 10px; width: 100%;" onclick="location.reload()">새로운 밤 시작 (초기화)</button>
+            <button class="btn" style="width: 100%;" onclick="extendGame()">패 3매 추가 배부 및 대국 연장</button>
+        </div>
+
+        <div id="next-round-area" style="display: none; margin-top: 20px;">
+            <p style="font-weight: bold; color: var(--accent-yellow);">라운드가 종료되었습니다. 계속하시겠습니까?</p>
+            <button class="btn" onclick="proceedRound()">다음 라운드 진행</button>
+            <button class="btn" style="background: var(--accent-red); margin-left: 10px;" onclick="endGame('상호 협의 종료')">여기까지</button>
+        </div>
+
+        <div class="log-window" id="log"></div>
+    </div>
+
+<script>
+    const CARDS = {
+        "멧돼지": { score: 2, vs: "두루미" },
+        "두루미": { score: 8, vs: "사슴" },
+        "사슴": { score: 4, vs: "나비" },
+        "나비": { score: 10, vs: "제비" },
+        "제비": { score: 6, vs: "멧돼지" }
+    };
+
+    let pHP, aHP, round = 1, pHand = [], aHand = [], selectedIdx = null;
+    let pUsed = [], aUsed = [], nextAiCardIdx = -1, nextAiBet = 0;
+    let isLocked = false;
+    let isWaitingAgreement = false; // 라운드 대기 상태 플래그
+
+    function rollLife() {
+        pHP = Math.floor(Math.random() * 100) + 1;
+        aHP = Math.floor(Math.random() * 100) + 1;
+        const box = document.querySelector('#step1 .box');
+        box.innerHTML = `<h1>수명 결정</h1><p>당신의 수명은 <b style="color:var(--accent-green)">${pHP}년</b>입니다.</p><p>상대의 수명은 ${aHP}년입니다.</p><button class="btn" onclick="startGM()">카드를 받는다</button>`;
+    }
+
+    function startGM() {
+        document.getElementById('step1').classList.remove('active');
+        document.getElementById('step2').classList.add('active');
+        setTimeout(() => {
+            distributeCards();
+            document.getElementById('step2').classList.remove('active');
+            document.getElementById('step3').classList.add('active');
+            updateUI();
+        }, 1200);
+    }
+
+    function distributeCards() {
+        const names = Object.keys(CARDS);
+        for(let i=0; i<3; i++) {
+            pHand.push(names[Math.floor(Math.random() * names.length)]);
+            aHand.push(names[Math.floor(Math.random() * names.length)]);
+        }
+        prepareAiChoice();
+    }
+
+    function prepareAiChoice() {
+        let valid = aHand.map((c, i) => c !== null ? i : null).filter(i => i !== null);
+        if (valid.length === 0) return;
+        valid.sort((a, b) => CARDS[aHand[b]].score - CARDS[aHand[a]].score);
+        nextAiCardIdx = valid[0];
+        let score = CARDS[aHand[nextAiCardIdx]].score;
+        nextAiBet = Math.floor(score * 2 + Math.random() * 10);
+        if(nextAiBet > aHP) nextAiBet = aHP;
+        if(nextAiBet < 1) nextAiBet = 1;
+    }
+
+    function updateUI() {
+        document.getElementById('hp-p').innerText = pHP;
+        document.getElementById('hp-a').innerText = aHP;
+        document.getElementById('round-n').innerText = round;
+        const h = document.getElementById('hand');
+        h.innerHTML = '';
+        pHand.forEach((n, i) => {
+            if(n) {
+                const c = document.createElement('div');
+                // 대기 중이거나 선택 확정된 경우 잠금 처리
+                c.className = `card ${selectedIdx === i ? 'selected' : ''} ${(isLocked || isWaitingAgreement) ? 'locked' : ''}`;
+                c.innerHTML = `<b>${n}</b><br><small>${CARDS[n].score}점</small>`;
+                c.onclick = () => { selectCard(i); };
+                h.appendChild(c);
+            }
+        });
+        
+        const actionArea = document.getElementById('action-area');
+        const warnMsg = document.getElementById('warn-msg');
+        const lockMsg = document.getElementById('lock-msg');
+
+        if(isLocked) {
+            warnMsg.style.display = 'none';
+            lockMsg.style.display = 'block';
+            actionArea.style.display = 'block';
+        } else {
+            warnMsg.style.display = (isWaitingAgreement) ? 'none' : 'block';
+            lockMsg.style.display = 'none';
+            actionArea.style.display = 'none';
+        }
+    }
+
+    function selectCard(idx) {
+        if(isLocked || isWaitingAgreement) return; // 대기 중에는 선택 불가
+        const cardName = pHand[idx];
+        if(!confirm(`[${cardName}]을 확정하시겠습니까?`)) return;
+
+        isLocked = true;
+        selectedIdx = idx;
+        
+        const intel = document.getElementById('intel-content');
+        if(cardName === "제비") intel.innerHTML = `[제비 정보] 상대 배팅: <b style="color:var(--accent-yellow)">${nextAiBet}년</b>`;
+        else if(cardName === "사슴") {
+            const validA = aHand.filter(c => c !== null);
+            const isDup = new Set(validA).size !== validA.length;
+            intel.innerHTML = `[사슴 정보] 상대 중복 패: <b>${isDup ? '있음' : '없음'}</b>`;
+        } else intel.innerText = "특수 효과 없음";
+        updateUI();
+    }
+
+    function doBattle() {
+        let pBet = parseInt(document.getElementById('bet-in').value);
+        if(pBet > pHP) return alert("보유 수명을 초과했습니다.");
+        if(isNaN(pBet) || pBet < 1) return alert("올바른 수치를 입력하세요.");
+
+        let pCard = pHand[selectedIdx];
+        let aCard = aHand[nextAiCardIdx];
+        
+        let pBonus = 0, aBonus = 0;
+        if(CARDS[pCard].vs === aCard) { pBonus = 3; aBonus = -1; }
+        else if(CARDS[aCard].vs === pCard) { aBonus = 3; pBonus = -1; }
+
+        let pTotal = CARDS[pCard].score + pBet + pBonus;
+        let aTotal = CARDS[aCard].score + nextAiBet + aBonus;
+
+        let pEffect = (aCard !== "멧돼지"), aEffect = (pCard !== "멧돼지");
+        let winner = (pTotal > aTotal) ? "p" : (aTotal > pTotal) ? "a" : "draw";
+        
+        const block = document.createElement('div');
+        block.className = 'battle-block';
+        block.innerHTML = `<div style="font-weight:bold; color:var(--accent-yellow)">[라운드 ${round} 결투] 나: ${pCard}(${pTotal}) vs AI: ${aCard}(${aTotal})</div>
+        <div class="log-calc">나 - 카드 등급 점수: ${CARDS[pCard].score} / 베팅: ${pBet} / 상성 보너스: ${pBonus}\nAI - 카드 등급 점수: ${CARDS[aCard].score} / 베팅: ${nextAiBet} / 상성 보너스: ${aBonus}</div>`;
+
+        if(winner === "p") {
+            let gain = (pCard === "두루미" && pEffect) ? nextAiBet * 2 : nextAiBet;
+            pHP += gain; aHP -= nextAiBet;
+            block.innerHTML += `<div style="color:var(--accent-green)">▶ 승리! 상대 수명 ${nextAiBet}년을 뺏어 ${gain}년 획득!</div>`;
+        } else if(winner === "a") {
+            let loss = (pCard === "두루미" && pEffect) ? Math.floor(pBet * 0.5) : pBet;
+            let aiGain = (aCard === "두루미" && aEffect) ? pBet * 2 : pBet;
+            pHP -= loss; aHP += aiGain;
+            block.innerHTML += `<div style="color:var(--accent-red)">▶ 패배... 수명 ${loss}년을 잃고 AI가 ${aiGain}년 획득.</div>`;
+        } else block.innerHTML += `<div>▶ 무승부! 변화 없음.</div>`;
+
+        document.getElementById('log').insertBefore(block, document.getElementById('log').firstChild);
+
+        let pToRec = (pCard === "나비" && pUsed.length > 0) ? pUsed[pUsed.length-1] : null;
+        let aToRec = (aCard === "나비" && aUsed.length > 0) ? aUsed[aUsed.length-1] : null;
+
+        pUsed.push(pCard); aUsed.push(aCard);
+        pHand[selectedIdx] = null; aHand[nextAiCardIdx] = null;
+        if(pToRec) pHand.push(pToRec);
+        if(aToRec) aHand.push(aToRec);
+
+        isLocked = false; selectedIdx = null;
+        
+        if(pHP <= 0 || aHP <= 0) {
+            endGame(pHP <= 0 ? '수명 고갈 사망' : '승리 (AI 처단)');
+        } else {
+            isWaitingAgreement = true; // 라운드 대기 상태 진입
+            updateUI();
+            document.getElementById('action-area').style.display = 'none';
+            if(round === 3) {
+                document.getElementById('choice-area').style.display = 'block';
+            } else {
+                document.getElementById('next-round-area').style.display = 'block';
+            }
+        }
+    }
+
+    function proceedRound() {
+        round++;
+        isWaitingAgreement = false;
+        prepareAiChoice();
+        document.getElementById('next-round-area').style.display = 'none';
+        document.getElementById('intel-content').innerText = "카드를 선택하십시오.";
+        updateUI();
+    }
+
+    function extendGame() {
+        round = 1;
+        isWaitingAgreement = false;
+        distributeCards();
+        document.getElementById('choice-area').style.display = 'none';
+        document.getElementById('intel-content').innerText = "패 3매가 추가되었습니다.";
+        updateUI();
+    }
+
+    function endGame(reason) {
+        isWaitingAgreement = true;
+        updateUI();
+        document.getElementById('action-area').style.display = 'none';
+        document.getElementById('choice-area').style.display = 'none';
+        document.getElementById('next-round-area').style.display = 'none';
+        const d = document.createElement('div');
+        d.innerHTML = `<hr><b style="color:var(--accent-yellow)">[${reason}]</b> 게임 종료. <button class='btn' style='background:var(--accent-yellow);' onclick='location.reload()'>처음부터 시작</button>`;
+        document.getElementById('log').insertBefore(d, document.getElementById('log').firstChild);
+    }
+</script>
+</body>
+</html>
