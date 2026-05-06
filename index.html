@@ -23,6 +23,17 @@
         .btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,255,136,0.3); }
         .btn:disabled { background: #444; color: #888; cursor: not-allowed; }
         
+        /* 저작권 문구 스타일 */
+        .credit-text {
+            margin-top: 35px;
+            font-size: 0.8rem;
+            color: #666;
+            line-height: 1.6;
+            word-break: keep-all;
+            border-top: 1px solid #222;
+            padding-top: 20px;
+        }
+
         .warning-text { color: var(--accent-red); font-size: 0.9rem; margin-bottom: 10px; font-weight: bold; }
         .lock-notice { color: var(--accent-yellow); font-size: 1rem; margin-top: 10px; display: none; }
 
@@ -40,7 +51,6 @@
         .card { width: 95px; height: 130px; background: #1f1f2a; border: 2px solid var(--border-color); border-radius: 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; }
         .card.selected { border-color: var(--accent-green); background: #1a3a2e; transform: translateY(-10px); box-shadow: 0 5px 15px rgba(0,255,136,0.3); }
         .card.locked { cursor: default; filter: brightness(0.5); }
-        .card.locked.selected { filter: brightness(1); border-color: #555; }
         
         .log-window { background: #050505; height: 300px; overflow-y: auto; border-radius: 10px; padding: 15px; text-align: left; border: 1px solid var(--border-color); font-size: 0.9rem; margin-top: 20px;}
         .battle-block { border-left: 3px solid var(--border-color); padding-left: 15px; margin-bottom: 20px; border-bottom: 1px solid #111; padding-bottom: 10px; }
@@ -69,6 +79,11 @@
             <h1>대수대명의 밤: 수명결</h1>
             <p>1d100 주사위를 굴려 당신의 명(命)을 확인하십시오.</p>
             <button class="btn" onclick="rollLife()">주사위 굴리기</button>
+            <div class="credit-text">
+                해당 게임은 청서(@LineYear35105)님의 CoC 7th 팬메이드 시나리오 Cryptbound 속에 등장하는 게임, '수명결'에 대한 플레이어들의 이해를 돕기 위해 제작되었습니다.<br><br>
+                모든 아이디어의 저작권은 청서님에게 있으며, 코드는 Ai의 도움을 받았습니다.<br>
+                문제가 생길 시 즉시 삭제됩니다.
+            </div>
         </div>
     </div>
 
@@ -118,14 +133,21 @@
 
     let pHP, aHP, round = 1, pHand = [], aHand = [], selectedIdx = null;
     let pUsed = [], aUsed = [], nextAiCardIdx = -1, nextAiBet = 0;
-    let isLocked = false;
-    let isWaitingAgreement = false; // 라운드 대기 상태 플래그
+    let isLocked = false, isWaitingAgreement = false;
 
     function rollLife() {
         pHP = Math.floor(Math.random() * 100) + 1;
         aHP = Math.floor(Math.random() * 100) + 1;
         const box = document.querySelector('#step1 .box');
-        box.innerHTML = `<h1>수명 결정</h1><p>당신의 수명은 <b style="color:var(--accent-green)">${pHP}년</b>입니다.</p><p>상대의 수명은 ${aHP}년입니다.</p><button class="btn" onclick="startGM()">카드를 받는다</button>`;
+        box.innerHTML = `<h1>수명 결정 완료</h1>
+            <p>당신의 수명은 <b style="color:var(--accent-green)">${pHP}년</b>입니다.</p>
+            <p>상대의 수명은 ${aHP}년입니다.</p>
+            <button class="btn" onclick="startGM()">카드를 받는다</button>
+            <div class="credit-text">
+                해당 게임은 청서(@LineYear35105)님의 CoC 7th 팬메이드 시나리오 Cryptbound 속에 등장하는 게임, '수명결'에 대한 플레이어들의 이해를 돕기 위해 제작되었습니다.<br><br>
+                모든 아이디어의 저작권은 청서님에게 있으며, 코드는 Ai의 도움을 받았습니다.<br>
+                문제가 생길 시 즉시 삭제됩니다.
+            </div>`;
     }
 
     function startGM() {
@@ -168,7 +190,6 @@
         pHand.forEach((n, i) => {
             if(n) {
                 const c = document.createElement('div');
-                // 대기 중이거나 선택 확정된 경우 잠금 처리
                 c.className = `card ${selectedIdx === i ? 'selected' : ''} ${(isLocked || isWaitingAgreement) ? 'locked' : ''}`;
                 c.innerHTML = `<b>${n}</b><br><small>${CARDS[n].score}점</small>`;
                 c.onclick = () => { selectCard(i); };
@@ -176,23 +197,19 @@
             }
         });
         
-        const actionArea = document.getElementById('action-area');
-        const warnMsg = document.getElementById('warn-msg');
-        const lockMsg = document.getElementById('lock-msg');
-
         if(isLocked) {
-            warnMsg.style.display = 'none';
-            lockMsg.style.display = 'block';
-            actionArea.style.display = 'block';
+            document.getElementById('warn-msg').style.display = 'none';
+            document.getElementById('lock-msg').style.display = 'block';
+            document.getElementById('action-area').style.display = 'block';
         } else {
-            warnMsg.style.display = (isWaitingAgreement) ? 'none' : 'block';
-            lockMsg.style.display = 'none';
-            actionArea.style.display = 'none';
+            document.getElementById('warn-msg').style.display = isWaitingAgreement ? 'none' : 'block';
+            document.getElementById('lock-msg').style.display = 'none';
+            document.getElementById('action-area').style.display = 'none';
         }
     }
 
     function selectCard(idx) {
-        if(isLocked || isWaitingAgreement) return; // 대기 중에는 선택 불가
+        if(isLocked || isWaitingAgreement) return;
         const cardName = pHand[idx];
         if(!confirm(`[${cardName}]을 확정하시겠습니까?`)) return;
 
@@ -211,8 +228,8 @@
 
     function doBattle() {
         let pBet = parseInt(document.getElementById('bet-in').value);
-        if(pBet > pHP) return alert("보유 수명을 초과했습니다.");
-        if(isNaN(pBet) || pBet < 1) return alert("올바른 수치를 입력하세요.");
+        if(pBet > pHP) return alert("수명을 초과했습니다.");
+        if(isNaN(pBet) || pBet < 1) return alert("올바른 값을 입력하세요.");
 
         let pCard = pHand[selectedIdx];
         let aCard = aHand[nextAiCardIdx];
@@ -230,7 +247,7 @@
         const block = document.createElement('div');
         block.className = 'battle-block';
         block.innerHTML = `<div style="font-weight:bold; color:var(--accent-yellow)">[라운드 ${round} 결투] 나: ${pCard}(${pTotal}) vs AI: ${aCard}(${aTotal})</div>
-        <div class="log-calc">나 - 카드 등급 점수: ${CARDS[pCard].score} / 베팅: ${pBet} / 상성 보너스: ${pBonus}\nAI - 카드 등급 점수: ${CARDS[aCard].score} / 베팅: ${nextAiBet} / 상성 보너스: ${aBonus}</div>`;
+        <div class="log-calc">나 - 카드 점수: ${CARDS[pCard].score} / 베팅: ${pBet} / 상성 보너스: ${pBonus}\nAI - 카드 점수: ${CARDS[aCard].score} / 베팅: ${nextAiBet} / 상성 보너스: ${aBonus}</div>`;
 
         if(winner === "p") {
             let gain = (pCard === "두루미" && pEffect) ? nextAiBet * 2 : nextAiBet;
@@ -245,56 +262,43 @@
 
         document.getElementById('log').insertBefore(block, document.getElementById('log').firstChild);
 
-        let pToRec = (pCard === "나비" && pUsed.length > 0) ? pUsed[pUsed.length-1] : null;
-        let aToRec = (aCard === "나비" && aUsed.length > 0) ? aUsed[aUsed.length-1] : null;
+        if(pCard === "나비" && pUsed.length > 0) pHand.push(pUsed[pUsed.length-1]);
+        if(aCard === "나비" && aUsed.length > 0) aHand.push(aUsed[aUsed.length-1]);
 
         pUsed.push(pCard); aUsed.push(aCard);
         pHand[selectedIdx] = null; aHand[nextAiCardIdx] = null;
-        if(pToRec) pHand.push(pToRec);
-        if(aToRec) aHand.push(aToRec);
+        isLocked = false; selectedIdx = null; updateUI();
 
-        isLocked = false; selectedIdx = null;
-        
-        if(pHP <= 0 || aHP <= 0) {
-            endGame(pHP <= 0 ? '수명 고갈 사망' : '승리 (AI 처단)');
-        } else {
-            isWaitingAgreement = true; // 라운드 대기 상태 진입
-            updateUI();
+        if(pHP <= 0 || aHP <= 0) endGame(pHP <= 0 ? '수명 고갈 사망' : '승리 (AI 처단)');
+        else {
+            isWaitingAgreement = true; updateUI();
             document.getElementById('action-area').style.display = 'none';
-            if(round === 3) {
-                document.getElementById('choice-area').style.display = 'block';
-            } else {
-                document.getElementById('next-round-area').style.display = 'block';
-            }
+            if(round === 3) document.getElementById('choice-area').style.display = 'block';
+            else document.getElementById('next-round-area').style.display = 'block';
         }
     }
 
     function proceedRound() {
-        round++;
-        isWaitingAgreement = false;
-        prepareAiChoice();
+        round++; isWaitingAgreement = false; prepareAiChoice();
         document.getElementById('next-round-area').style.display = 'none';
         document.getElementById('intel-content').innerText = "카드를 선택하십시오.";
         updateUI();
     }
 
     function extendGame() {
-        round = 1;
-        isWaitingAgreement = false;
-        distributeCards();
+        round = 1; isWaitingAgreement = false; distributeCards();
         document.getElementById('choice-area').style.display = 'none';
         document.getElementById('intel-content').innerText = "패 3매가 추가되었습니다.";
         updateUI();
     }
 
     function endGame(reason) {
-        isWaitingAgreement = true;
-        updateUI();
+        isWaitingAgreement = true; updateUI();
         document.getElementById('action-area').style.display = 'none';
         document.getElementById('choice-area').style.display = 'none';
         document.getElementById('next-round-area').style.display = 'none';
         const d = document.createElement('div');
-        d.innerHTML = `<hr><b style="color:var(--accent-yellow)">[${reason}]</b> 게임 종료. <button class='btn' style='background:var(--accent-yellow);' onclick='location.reload()'>처음부터 시작</button>`;
+        d.innerHTML = `<hr><b style="color:var(--accent-yellow)">[${reason}]</b> 게임 종료. <button class='btn' onclick='location.reload()'>처음부터 시작</button>`;
         document.getElementById('log').insertBefore(d, document.getElementById('log').firstChild);
     }
 </script>
